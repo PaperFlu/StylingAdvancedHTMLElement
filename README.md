@@ -2,7 +2,7 @@
 
 It has long been a problem that you have to either write css **inside** js code or import them from external file and bear a [FOUC](https://en.wikipedia.org/wiki/Flash_of_unstyled_content) (flash of unstyled content) when **dynamically creating custom elements**.
 
-> PS: I found the issue by googling it for 10 minutes, so don't expect me to be responsible for the authenticity of the 'either...or...' sentence.
+> **PS:** I found the issue by googling it for 10 minutes, so don't expect me to be responsible for the authenticity of the 'either...or...' sentence.
 
 but there is a way.
 
