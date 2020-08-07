@@ -1,25 +1,46 @@
-const getUrl = (type, name) => {
-  let relativePath;
-  switch (type) {
-    case 'style':
-      relativePath = `styles/${name}`;
-      break;
-    default:
-      throw `No file type matched for '${type}'`;
-      break;
-  };
-  return chrome.runtime.getURL(relativePath);
-};
-
 const css = String.raw;
 
+class Style {
+  status = 'unloaded'; // unloaded, loading, complete.
+  url = '';
+  text = '';
+  applyQueue = [];
+
+  constructor(url) {
+    this.url = url;
+
+    this.update();
+  }
+
+  async update() {
+    if (this.status === 'loading') return;
+    this.status = 'loading';
+
+    await fetch(this.url).then(r => r.text()).then((text) => {
+      this.text = text;
+      this.status = 'complete';
+
+      for (const ele of this.applyQueue) {
+        ele.styleEle.textContent = text;
+      };
+    }).catch((error) => {
+      this.status = 'unloaded';
+      throw error;
+    });
+  }
+};
+
 class StylingAdvancedHTMLElement extends HTMLElement {
-  static initialStyle = css`
+  static styleFileUrl;
+
+  static initialStyleText = css`
     :host {
       position: absolute !important;
       visibility: hidden !important;
     }
   `;
+
+  static styleList = [];
 
   styleEle = document.createElement('style');
 
@@ -30,16 +51,28 @@ class StylingAdvancedHTMLElement extends HTMLElement {
       mode: 'open',
     });
 
-    this.styleEle.innerText = this.constructor.initialStyle;
-    this.shadowRoot.prepend(this.styleEle);
+    const {
+      styleFileUrl,
+      initialStyleText,
+      styleList,
+    } = this.constructor;
 
-    this.styling();
-  }
+    let style = styleList.find(style => styleFileUrl === style.url);
+    if (!style) {
+      style = new Style(styleFileUrl);
+      styleList.push(style);
+    };
 
-  async styling() {
-    const fileUrl = getUrl('style', this.constructor.styleFileName);
-    const styleText = await fetch(fileUrl).then((response) => response.text());
-    this.styleEle.innerText = styleText;
+    let styleText;
+    if (style.status !== 'complete') {
+      styleText = initialStyleText;
+      style.applyQueue.push(this);
+    } else {
+      styleText = style.text;
+    };
+
+    this.styleEle.textContent = styleText;
+    shadow.prepend(this.styleEle);
   }
 };
 
